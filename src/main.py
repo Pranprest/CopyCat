@@ -12,7 +12,7 @@ from pynput import mouse, keyboard
 from time import sleep, time
 import logging
 logging.basicConfig(level=logging.DEBUG,
-                    filename="..\\log\\logfile.log", format='%(levelname)s:%(message)s')
+                    filename="log\\logfile.log", format='%(levelname)s:%(message)s')
 
 
 def recordInput() -> dict[list, list, list]:
@@ -28,6 +28,7 @@ def recordInput() -> dict[list, list, list]:
         # "event_timeline": []
     }
 
+    # TODO: Maybe using sets here would be a better idea than using lists within lists
     def on_click(x, y, button, pressed):
         elapsed_time = round(time() - initial_time, 2)
         user_input["mouse"].append([(x, y), button, elapsed_time])
@@ -51,17 +52,32 @@ def recordInput() -> dict[list, list, list]:
 
 def replayMouse(InputList: list) -> None:
     print("Replaying mouse input...")
-    raise NotImplementedError()
+    mouse_controller = mouse.Controller()
+    # TODO: Make these more specific, maybe using sets or dictionaries (like: inputset.pos)(?)
+    for i in range(len(InputList)):
+        pos = InputList[i][0]
+        key = InputList[i][1]
+        curr_time = InputList[i][2]
+        if (InputList[i - 1] != InputList[-1]):
+            sleep(curr_time - InputList[i - 1][2])
+        try:
+            mouse_controller.position = pos
+            mouse_controller.press(key)
+            mouse_controller.release(key)
+        except Exception as e:
+            print("Unsupported key was pressed, check logfiles for more information")
+            logging.error(e)
+            exit()
 
 
 def replayKeyboard(InputList: list[tuple]) -> None:
     print("Replaying keyboard input...")
     keyboard_controller = keyboard.Controller()
     for i in range(len(InputList)):  # Tuple w/ input and time
-        key, currtime = InputList[i]
+        key, curr_time = InputList[i]
         if (InputList[i - 1] != InputList[-1]):
             # Sleep for the ammount of time of the interval between last input and current one
-            sleep(currtime - InputList[i - 1][1])
+            sleep(curr_time - InputList[i - 1][1])
         # TODO: Implement "shift", "control", "cmd" keys (not just one input only keys)
         # TODO: Also somehow figure out a way to support weird non-american keyboard keys
         try:
