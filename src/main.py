@@ -10,12 +10,23 @@
 """
 import logging
 from collections import namedtuple
+from random import randint
 from time import sleep, time
 from pynput import keyboard, mouse
+from pathlib import Path
+import pickle
+import os
 
+currosslash = "\\" if (os.name == "nt") else "/"
+currfilepath = f"{Path(__file__).parent.absolute()}{currosslash}"
 logging.basicConfig(
-    level=logging.DEBUG, filename="log\\logfile.log", format="%(levelname)s:%(message)s"
+    level=logging.DEBUG, filename=f"{currfilepath}logfile.log", format="%(levelname)s:%(message)s"
 )
+
+# Global namedtuples so that I can pickle them!
+Point = namedtuple("Point", "x y")
+MouseInput = namedtuple("MouseInput", "time button pos")
+KeyboardInput = namedtuple("KeyboardInput", "time button")
 
 
 def recordInput() -> tuple:
@@ -23,10 +34,6 @@ def recordInput() -> tuple:
     Records your mouse and keyboard input!
     """
     initial_time = time()
-
-    Point = namedtuple("Point", "x y")
-    MouseInput = namedtuple("MouseInput", "time button pos")
-    KeyboardInput = namedtuple("KeyboardInput", "time button")
 
     MouseList = []
     KeyboardList = []
@@ -78,14 +85,44 @@ def replayInput(MouseList: list, KeyboardList: list) -> None:
                 mouse_controller.press(curr_input[1])
                 mouse_controller.release(curr_input[1])
         except Exception as e:
-            logging.error(e)
             print("Invalid or unsupported input, check logfile for more information")
+            logging.error(e)
+
+
+def importInputs(file_path: Path) -> tuple:
+    try:
+        with open(f'{file_path}', 'rb') as f:
+            return pickle.load(f)
+    except Exception as e:
+        print("Error when reading pickle file, is it really a pickle? If so, read logfile for more information.\n")
+        logging.error(e)
+        exit()
+
+
+def exportInputs(InputList: tuple) -> None:
+    try:
+        with open(f"exportCopyCat-{randint(1,100000)}.pkl", "wb") as f:
+            pickle.dump(InputList, f)
+    except IOError as e:
+        print("Error while writing pickle, check logfile for more information.\n")
+        logging.error(e)
+        exit()
 
 
 def main() -> None:
     answer = input(
-        'Would you like to record your (keyboard and mouse) inputs? : [y/n] ')
-    if not answer or answer[0].lower() != 'y':
+        'Would you like to (R)ecord your keyboard and mouse inputs or get them from a (F)ile? [r/f] ')
+    if answer[0].lower() == 'f':
+        mouselist, keyboardlist = importInputs(
+            input("Paste here the file's full absolute path: "))
+        answer = input(
+            'Would you like to replay them right now? [y/n] ')
+        if answer[0].lower() != 'y':
+            exit()
+        # TODO: "Press space when you want to replay XYZ"
+        replayInput(MouseList=mouselist, KeyboardList=keyboardlist)
+        exit()
+    if answer[0].lower() != 'r':
         exit()
     print("Recording inputs, press ESC to stop recording...")
     # FIXME: That works, but still looks super bad, maybe splitting the try catch block in half would be better
@@ -94,13 +131,15 @@ def main() -> None:
         logging.debug(
             f"Mouse Input:{mouselist}\n Keyboard Input:{keyboardlist}")
         answer = input(
-            'Would you like to replay your (keyboard and mouse) inputs? : [y/n] ')
-        if not answer or answer[0].lower() != 'y':
-            exit()
-        replayInput(MouseList=mouselist, KeyboardList=keyboardlist)
+            'Would you like to (e)xport your inputs or (r)eplay them right now? [e/r] ')
+        if answer[0].lower() == 'e':
+            exportInputs((mouselist, keyboardlist))
+        else:
+            replayInput(MouseList=mouselist, KeyboardList=keyboardlist)
     except Exception as e:
         print("An error ocourred during runtime, check logfiles for more information.")
         logging.error(e)
+        exit()
     print("Script ran successfully!")
 
 
