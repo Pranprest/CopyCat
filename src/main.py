@@ -11,8 +11,6 @@
 import logging
 from collections import namedtuple
 from time import sleep, time
-
-import pynput
 from pynput import keyboard, mouse
 
 logging.basicConfig(
@@ -120,6 +118,7 @@ def main() -> None:
         mouselist, keyboardlist = recordInput()
         logging.debug(f"{mouselist}, {keyboardlist}")
         replayFull(MouseList=mouselist, KeyboardList=keyboardlist)
+        print("Script ran successfully!")
     except Exception as e:
         print("An error ocourred during runtime, check logfiles for more information.")
         logging.error(e)
