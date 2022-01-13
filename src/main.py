@@ -58,41 +58,7 @@ def recordInput() -> tuple:
     return MouseList, KeyboardList
 
 
-def replayMouse(InputList: list) -> None:
-    print("Replaying mouse input...")
-    mouse_controller = mouse.Controller()
-    for index, curr_input in enumerate(InputList):
-        pos, key, curr_time = curr_input
-        if InputList[index - 1] != InputList[-1]:
-            sleep(curr_time - InputList[index - 1][0])
-        mouse_controller.position = pos
-        mouse_controller.press(key)
-        mouse_controller.release(key)
-    return
-
-
-def replayKeyboard(InputList: list[tuple]) -> None:
-    print("Replaying keyboard input...")
-    keyboard_controller = keyboard.Controller()
-    for index, curr_input in enumerate(InputList):  # Tuple w/ input and time
-        curr_time, key = curr_input
-        if InputList[index - 1] != InputList[-1]:
-            # Sleep for the ammount of time of the interval between last input and current one
-            sleep(curr_time - InputList[index - 1][0])
-        # TODO: Somehow figure out a way to support any other kind of key other than regular ASCII
-        keyboard_controller.press(key)
-        keyboard_controller.release(key)
-    return
-
-
-def replayFull(MouseList: list, KeyboardList: list) -> None:
-    if not KeyboardList:
-        replayMouse(MouseList)
-        exit()
-    if not MouseList:
-        replayKeyboard(KeyboardList)
-        exit()
-
+def replayInput(MouseList: list, KeyboardList: list) -> None:
     mouse_controller = mouse.Controller()
     keyboard_controller = keyboard.Controller()
     sorted_full_list = sorted(
@@ -103,25 +69,39 @@ def replayFull(MouseList: list, KeyboardList: list) -> None:
         if sorted_full_list[index - 1] != sorted_full_list[-1]:
             sleep(curr_time - sorted_full_list[index - 1][0])
         # FIXME: I can't check directly if the namedtuple is either KeyboardInput or MouseInput
-        # FIXME: Really bad readability here.
-        if len(curr_input) <= 2:
-            keyboard_controller.press(curr_input[1])
-            keyboard_controller.release(curr_input[1])
-        else:
-            mouse_controller.position = curr_input[2]
-            mouse_controller.press(curr_input[1])
-            mouse_controller.release(curr_input[1])
+        try:
+            if len(curr_input) <= 2:
+                keyboard_controller.press(curr_input[1])
+                keyboard_controller.release(curr_input[1])
+            else:
+                mouse_controller.position = curr_input[2]
+                mouse_controller.press(curr_input[1])
+                mouse_controller.release(curr_input[1])
+        except Exception as e:
+            logging.error(e)
+            print("Invalid or unsupported input, check logfile for more information")
 
 
 def main() -> None:
+    answer = input(
+        'Would you like to record your (keyboard and mouse) inputs? : [y/n] ')
+    if not answer or answer[0].lower() != 'y':
+        exit()
+    print("Recording inputs, press ESC to stop recording...")
+    # FIXME: That works, but still looks super bad, maybe splitting the try catch block in half would be better
     try:
         mouselist, keyboardlist = recordInput()
-        logging.debug(f"{mouselist}, {keyboardlist}")
-        replayFull(MouseList=mouselist, KeyboardList=keyboardlist)
-        print("Script ran successfully!")
+        logging.debug(
+            f"Mouse Input:{mouselist}\n Keyboard Input:{keyboardlist}")
+        answer = input(
+            'Would you like to replay your (keyboard and mouse) inputs? : [y/n] ')
+        if not answer or answer[0].lower() != 'y':
+            exit()
+        replayInput(MouseList=mouselist, KeyboardList=keyboardlist)
     except Exception as e:
         print("An error ocourred during runtime, check logfiles for more information.")
         logging.error(e)
+    print("Script ran successfully!")
 
 
 if __name__ == "__main__":
