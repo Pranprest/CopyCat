@@ -101,7 +101,7 @@ def importInputs(file_path: Path) -> tuple:
 
 def exportInputs(InputList: tuple) -> None:
     try:
-        with open(f"exportCopyCat-{randint(1,100000)}.pkl", "wb") as f:
+        with open(f"{currfilepath}exportCopyCat-{time()}.pkl", "wb") as f:
             pickle.dump(InputList, f)
     except IOError as e:
         print("Error while writing pickle, check logfile for more information.\n")
